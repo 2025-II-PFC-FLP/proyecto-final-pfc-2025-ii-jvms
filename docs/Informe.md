@@ -613,7 +613,7 @@ En este proyecto:
 Los resultados experimentales muestran:
 
 - A mayor tamaño de la finca, mayor aprovechamiento del paralelismo.
-- La aceleración crece progresivamente $(33\% \rightarrow 40\% \rightarrow 41\%)$.
+- La aceleración crece progresivamente $(33\% \rightarrow 40\% \rightarrow 41\%)$
 - El comportamiento obtenido es consistente con la Ley de Amdahl.
 
 ------
