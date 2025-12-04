@@ -189,3 +189,6 @@ Por inducción, al llegar al estado final, \$max = f(L)\$.
 $$
 P_f(L) == f(L)
 $$
+
+
+----
