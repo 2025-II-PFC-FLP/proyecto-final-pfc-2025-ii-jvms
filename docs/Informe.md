@@ -89,7 +89,6 @@ Se utilizó `foldLeft` para mantener un diseño totalmente funcional y libre de 
 
 ```mermaid
 flowchart TD
-    flowchart TD
     A[Inicio foldLeft] --> B[tiempoActual = 0 y vector inicial]
     B --> C[Procesar el primer elemento de order]
     C --> D[Asignar tiempo de inicio del tablón actual]
@@ -160,7 +159,6 @@ def recorrer(j: Int): Int =
 Diagrama del proceso:
 ```mermaid
 flowchart TD
-    flowchart TD
     A[j = 0] --> B[Calcular distancia entre tablón actual y el siguiente]
     B --> C[j = 1]
     C --> D[Calcular distancia entre siguiente par consecutivo]
