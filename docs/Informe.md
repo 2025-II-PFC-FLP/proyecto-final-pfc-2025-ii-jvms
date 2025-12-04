@@ -89,13 +89,14 @@ Se utilizó `foldLeft` para mantener un diseño totalmente funcional y libre de 
 
 ```mermaid
 flowchart TD
-    A[Inicio foldLeft] --> B[tiempoActual = 0<br>vector = [0,0,...]]
-    B --> C[Procesar order(0)]
-    C --> D[Actualizar tiempo de inicio del tablón]
-    D --> E[Acumular tiempoActual + tr]
-    E --> F{¿Hay más tablones?}
+    flowchart TD
+    A[Inicio foldLeft] --> B[tiempoActual = 0 y vector inicial]
+    B --> C[Procesar el primer elemento de order]
+    C --> D[Asignar tiempo de inicio del tablón actual]
+    D --> E[Sumar tr al tiempoActual]
+    E --> F{¿Quedan más tablones?}
     F -- Sí --> C
-    F -- No --> G[Retornar vector final]
+    F -- No --> G[Retornar el vector de tiempos]
 ```
 Ejemplo para `order = [2,0,1]`:
 - Tablón 2 inicia en 0
@@ -159,12 +160,13 @@ def recorrer(j: Int): Int =
 Diagrama del proceso:
 ```mermaid
 flowchart TD
-    A[j=0] --> B[Calcular d(order(0))(order(1))]
-    B --> C[j=1]
-    C --> D[Calcular d(order(1))(order(2))]
-    D --> E[j=2]
-    E --> F[...]
-    F --> G[j>=n-1 → retornar 0]
+    flowchart TD
+    A[j = 0] --> B[Calcular distancia entre tablón actual y el siguiente]
+    B --> C[j = 1]
+    C --> D[Calcular distancia entre siguiente par consecutivo]
+    D --> E[j = 2]
+    E --> F[Seguir procesando pares consecutivos]
+    F --> G[j alcanza el final → retornar 0]
 ```
 
 ---
@@ -177,10 +179,10 @@ Se implementó una función recursiva basada en:
 Diagrama del algoritmo:
 ```mermaid
 flowchart TD
-    A[prefix, rem] --> B{rem vacío?}
+    A[Entrada: prefix y rem] --> B{¿rem está vacío?}
     B -- Sí --> C[Retornar prefix]
-    B -- No --> D[Escoger id en rem]
-    D --> E[Llamar perms(prefix:+id, rem-id)]
+    B -- No --> D[Seleccionar un id de rem]
+    D --> E[Llamar función perms con prefix actualizado y rem reducido]
     E --> B
 ```
 
@@ -243,11 +245,11 @@ flowchart TD
 ### Selección del mejor orden
 ```mermaid
 flowchart TD
-    A[programaciones] --> B[foldLeft (mejor, mejorCosto)]
-    B --> C[Evaluar costo total]
-    C --> D{¿< mejorCosto?}
-    D -- Sí --> E[Actualizar]
-    D -- No --> F[Mantener]
+    A[Conjunto de programaciones] --> B[Aplicar foldLeft con mejor y mejorCosto]
+    B --> C[Calcular costo total de la programación actual]
+    C --> D{¿Es menor que el mejorCosto?}
+    D -- Sí --> E[Actualizar mejor y mejorCosto]
+    D -- No --> F[Conservar valores actuales]
     E --> B
     F --> B
 ```
