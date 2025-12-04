@@ -189,3 +189,230 @@ Por inducción, al llegar al estado final, \$max = f(L)\$.
 $$
 P_f(L) == f(L)
 $$
+
+
+----
+
+# Informe de Correcion 
+
+En este Informe se presentara el proceso de correcion funcional del sistema de riego, tanto en su version secuencial como en su version paralela. 
+
+- Inducción estructural
+- Definiciones matemáticas de las funciones
+- Correspondencia entre especificación y programa
+- Argumentación sobre recursión y paralelismo
+
+----
+
+## Especificacion Formal
+
+Se define Finca como:
+
+Un conjunto de tablones representado por un vector cada tablón es una tupla `ts, tr, p`
+
+- `ts`: tiempo máximo antes de sufrir
+- `tr`: tiempo de riego
+- `p`: penalización por sufrimiento
+
+El objetivo es calcular la programación óptima de riego, esto es encontrar un ordenamiento π de los tablones que minimice:
+
+`CostoTotal(π) = CostoRiego(π) + CostoMovilidad(π)`
+
+donde:
+
+- `CostoRiego` se calcula acumulando tiempos y verificando sufrimiento
+- `CostoMovilidad` depende del desplazamiento entre tablones
+
+---
+
+# Funciones Recursivas
+
+### Generacion Secuencial de permutaciones
+
+La funcion Matematica deseada:
+
+$$ f(T) = \text{todas las permutaciones del conjunto tablones de T} $$
+
+Codigo :
+
+```scala
+def perms(prefix, rem):
+if rem vacío → Vector(prefix)
+else:
+para cada id en rem:
+  perms(prefix :+ id, rem - id)
+```
+
+---
+
+### Coreccion de las Permutaciones
+
+La función opera sobre listas/vectores, los cuales son conjuntos definidos recursivamente:
+
+- **Caso base:** lista vacía
+- **Caso inductivo:** lista con cabeza + cola
+
+Por lo tanto, la corrección se demuestra por inducción estructural.
+
+---
+
+### Caso base
+
+$$ rem = ∅ $$
+
+La implementación retorna:
+
+```scala
+Vector(prefix)
+```
+que coincide con la definicion Matematica:
+
+$$ f(∅) = \{ prefix\} $$
+
+Caso Base Correcto.
+
+---
+
+### Caso Inductivo 
+
+Sea $$ rem = \{x₁, x₂, …, xₙ\} $$
+
+Se asume hipótesis de inducción:
+
+$$ perms(prefix  \cup \{Xi\}, rem - Xi) $$ es correcta. 
+
+Entonces la implementación construye:
+
+```scala
+⋃ perms(prefix :+ xᵢ, rem - xᵢ)
+```
+y esto corresponde exactamente a: 
+
+$$f(rem) = \cup_{i=1}^{n} f(rem-Xi) $$
+
+Por hipótesis de inducción, el caso inductivo es correcto. por lo tanto, `perms` es correcta para todo `rem`.
+
+---
+
+## Correcion de Costo de Riego 
+
+
+###  Especificacion Matematica
+
+
+$$ CostoRiegoTablon(i)= \begin{cases} tSi - (ti + tri) & \text{si no sufre} \\  pi((ti + tri)- tsi)   & \text{si sufre} \end{cases} $$
+
+donde:
+
+`tᵢ` = tiempo acumulado antes de llegar al tablón `i`
+
+Codigo: 
+
+```scala
+if (ts_i - tr_i >= t_i)
+  ts_i - (t_i + tr_i)
+else
+  p_i * ((t_i + tr_i) - ts_i)
+```
+
+### Correcion Caso base
+
+El cálculo depende solo de valores atómicos, no recursivos → trivialmente correcto.
+
+### Correccion Caso Inductivo
+
+`ti` depende de:
+
+`foldleft` sobre el orden
+
+por tanto, la secuencia de tiempos esta definida recursivamente:
+
+- Caso base: `tiempoActual = 0`
+- Caso inductivo: `tiempoActual = tiempoActual + tr`
+
+Esto coincide con: 
+
+$$ tk+1 = tk + trk $$
+por tanto es correcto.
+
+
+---
+
+## Corrrecion de Costo Movilidad 
+
+La movilidad esta definida como: 
+
+$$ CostoMovilidad(π)= \sum d(πi,πi+1) $$
+
+Codigo:
+
+```scala
+def recorrer(j):
+if j >= n-1 → 0
+else d(actual)(sig) + recorrer(j+1)
+```
+
+Se demuestra por inducción sobre el índice j:
+
+- Caso base: `j = n - 1 → 0`
+- Caso inductivo: la ejecución mantiene la suma sobre `j+1`. Por hipótesis de inducción, el resultado es correcto.
+
+----
+
+## Correcion de la version Paralela 
+
+
+La versión paralela usa:
+
+- Computación por tablón en paralelo
+- Suma paralela
+- Evaluación independiente de pares de movilidad
+- Paralelización del branching en permutaciones
+
+#### Propiedad clave:
+
+Todas las tareas paralelizadas son independientes entre sí. Como:
+
+- Costo por tablón depende únicamente de su orden
+- Costo de movilidad depende solo de pares consecutivos
+- Permutaciones se dividen en ramas independientes
+
+Entonces:
+
+$$Pf(a1),Pf(a2),...,Pf(an) $$
+
+pueden evaluarse en paralelo sin afectar su valor.
+
+su equivalencia es: 
+
+$$ProgramacionRiegoOptimo(f,d) = ProgramacionRiegoOptimoPar(f,d) $$
+
+Esto verifica mediante:
+
+- induccion sobre permutaciones
+- Propiedades de independencias
+- Test formales
+
+---
+
+# Pila de llamados
+
+```mermaid
+flowchart TD
+
+    RB[RiegoBase<br/>tiempos y costos base]
+    RC[RiegoCostos<br/>costos secuenciales]
+    RP[RiegoPermutaciones<br/>programación óptima secuencial]
+    RPar[RiegoParalelo<br/>versión paralela]
+    TI[TestRiegoIntegracion<br/>equivalencia seq/par]
+
+    RB --> RC
+    RC --> RP
+    RB --> RPar
+    RC --> RPar
+    RP --> TI
+    RPar --> TI
+```
+
+---
+
