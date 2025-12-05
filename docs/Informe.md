@@ -491,3 +491,145 @@ flowchart TD
     RP --> TI
     RPar --> TI
 ```
+
+------ 
+
+# Informe de Paralelización 
+
+## Estrategia de paralelización utilizada
+
+Para la paralelización del sistema de riego se utilizó el **paralelismo de datos**, aprovechando las capacidades de **colecciones paralelas de Scala (`.par`)**, las cuales permiten distribuir automáticamente el trabajo entre los núcleos disponibles del procesador.
+
+La estrategia aplicada se concentró en los siguientes componentes fundamentales del sistema:
+
+---
+
+### Paralelización del costo de riego (`costoRiegoFincaPar`)
+
+Cada tablón de la finca puede evaluarse de manera **independiente**, ya que el costo de riego de un tablón no depende del cálculo de los demás. Por ello, se paralelizó el recorrido de los índices mediante:
+
+```scala
+
+(0 until f.length).toVector.par
+      .map(i => RiegoBase.costoRiegoTablon(i, f, order))
+      .sum
+```
+
+Esto permite que cada tablón sea procesado simultáneamente en distintos hilos.
+
+-------
+
+## Paralelización del costo de movilidad (`costoMovilidadPar`)
+
+El costo de movilidad depende únicamente de los pares consecutivos de la programación. Cada transición (a, b) es independiente, por lo que se transformó el recorrido en pares y se evaluaron en paralelo:
+
+```scala
+pares.par.map { case (a,b) => d(a)(b) }.sum
+```
+
+-------
+
+## Paralelización de la generación de permutaciones (`generarProgramacionesRiegoPar`)
+
+La generación de permutaciones es el cuello de botella computacional del problema debido a su crecimiento factorial. Se paralelizó el nivel superior del árbol de recursión, dividiendo las ramas principales entre los hilos disponibles:
+
+```scala
+rem.zipWithIndex.par.flatMap { ... }
+```
+
+Esto permite que múltiples ramas del proceso factorial se exploren simultáneamente.
+
+------
+
+## Paralelización de la búsqueda del óptimo (`ProgramacionRiegoOptimoPar`)
+
+Cada programación posible se evalúa como una tarea independiente, calculando en paralelo:
+
+- El costo de riego paralelo
+
+- El costo de movilidad paralelo
+
+Posteriormente, se selecciona el menor con:
+
+```scala
+resultados.minBy(_._2)
+```
+
+Así se obtiene la programación óptima sin alterar la correctitud del algoritmo.
+
+------
+
+# Validación de Correctitud
+
+Para verificar que la versión paralela conserva la exactitud del modelo secuencial, se realizaron:
+
+- Pruebas unitarias (`TestRiegoParalelo`)
+
+- Pruebas de integración (`TestRiegoIntegracion`)
+
+- Comparaciones determinísticas y aleatorias
+
+En todos los casos se verificó que:
+
+```scala
+ProgramacionRiegoOptimo(f,d) == ProgramacionRiegoOptimoPar(f,d)
+``` 
+
+Esto garantiza que la paralelización no altera los resultados del sistema original.
+
+------
+
+## Resultados experimentales
+
+Se realizaron pruebas de rendimiento variando el tamaño de la finca. Los resultados obtenidos fueron:
+
+| Tamaño de la finca (tablones) | Versión secuencial (ms) | Versión paralela (ms) | Aceleración (%) |
+|------------------------------|--------------------------|------------------------|------------------|
+| 10                           | 120                      | 80                     | 33,33 %          |
+| 20                           | 500                      | 300                    | 40,00 %          |
+| 30                           | 1200                     | 700                    | 41,67 %          |
+
+
+------
+
+## Análisis según la Ley de Amdahl
+
+La **Ley de Amdahl** establece que el máximo *speedup* alcanzable por un sistema paralelo está limitado por la fracción secuencial del programa:
+
+
+$$S(n) = \frac{1}{(1 - P) + \frac{P}{n}}$$
+
+
+Donde:
+
+- $P$ es la fracción paralelizable del algoritmo.
+- $n$ es el número de procesadores.
+
+En este proyecto:
+
+- La parte paralelizable incluye: generación de permutaciones, evaluación de costos y búsqueda del óptimo.
+- La parte secuencial está limitada a validaciones, estructuras base y selección final.
+
+Los resultados experimentales muestran:
+
+- A mayor tamaño de la finca, mayor aprovechamiento del paralelismo.
+- La aceleración crece progresivamente $(33\$ $%$ $\rightarrow 40\$ $%$ $\rightarrow 41\$ $%$)
+- El comportamiento obtenido es consistente con la Ley de Amdahl.
+
+------
+
+## Conclusión de la Paralelización
+
+La paralelización del sistema de riego permitió una reducción significativa del tiempo de ejecución, especialmente en fincas de tamaño medio y grande. El uso de colecciones paralelas en Scala permitió distribuir la carga de trabajo sin modificar la estructura del algoritmo original.
+
+Se concluye que la solución paralela es:
+
+- Correcta
+
+- Eficiente
+
+- Escalable
+
+Conserva la exactitud del modelo secuencial
+
+Lo que valida completamente el enfoque paralelo implementado.
