@@ -633,3 +633,200 @@ Se concluye que la solución paralela es:
 Conserva la exactitud del modelo secuencial
 
 Lo que valida completamente el enfoque paralelo implementado.
+
+# Documentación de Casos de Prueba – RiegoBase
+
+Este módulo valida las funciones principales del sistema de riego: cálculo de tiempos de inicio, conversión entre mapeos y órdenes, y cálculo del costo de riego de cada tablón. A continuación se describe de forma breve qué evalúa cada caso de prueba y cuál es el resultado esperado.
+
+---
+
+## Casos de Prueba – `TestRiegoBase`
+
+### 1. tIR_fromOrder – orden simple 0,1,2
+**Qué prueba:** Calcula los tiempos de inicio cuando los tablones se riegan en el orden natural.  
+**Resultado esperado:** `Vector(0,2,5)`.
+
+### 2. tIR_fromOrder – orden 2,0,1
+**Qué prueba:** Verifica que el tiempo acumulado cambia según el orden especificado.  
+**Resultado esperado:** `Vector(1,3,0)`.
+
+### 3. tIR_fromOrder – finca de un solo tablón
+**Qué prueba:** Caso mínimo con un único tablón.  
+**Resultado esperado:** `Vector(0)`.
+
+### 4. tIR_fromMapping – mapping invertido a orden
+**Qué prueba:** Revisa que un mapping se convierta correctamente en una permutación real y se calculen sus tiempos.  
+**Resultado esperado:** Igual a `tIR_fromOrder(f, Vector(1,2,0))`.
+
+### 5. tIR_fromOrder – verificar contra ejemplo del profesor
+**Qué prueba:** Compara tiempos puntuales para asegurar consistencia con un ejemplo externo.  
+**Resultado esperado:** `t(2) == 0` y `t(1) == 2`.
+
+### 6. costoRiegoTablon – no sufre
+**Qué prueba:** Calcula el costo cuando el tablón se riega antes de su tiempo crítico.  
+**Resultado esperado:** `7`.
+
+### 7. costoRiegoTablon – sufre
+**Qué prueba:** Verifica la fórmula cuando el tablón se riega tarde y hay penalización.  
+**Resultado esperado:** `2`.
+
+### 8. costoRiegoTablon – prioridad alta
+**Qué prueba:** Asegura que el costo calculado sea válido cuando el tablón tiene prioridad alta.  
+**Resultado esperado:** Costo ≥ 0.
+
+### 9. costoRiegoTablon – orden generado desde mapping
+**Qué prueba:** Evalúa compatibilidad entre orden generado desde mapping y cálculo de costo.  
+**Resultado esperado:** Un número entero válido.
+
+### 10. costoRiegoTablon – ejemplo general válido
+**Qué prueba:** Caso general que garantiza que la función devuelve un entero válido.  
+**Resultado esperado:** Un valor entero.
+#  RiegoCostos
+
+Este módulo valida el cálculo del costo total de riego de una finca y el costo por movilidad entre tablones según el orden de riego. A continuación se describen brevemente los casos de prueba y sus resultados esperados.
+
+---
+
+## Casos de Prueba – `TestRiegoCostos`
+
+### 1. costoRiegoFinca – finca de un solo tablón
+**Qué prueba:** Suma del costo para un único tablón.  
+**Resultado esperado:** Igual al costo del tablón 0.
+
+### 2. costoRiegoFinca – dos tablones sin sufrimiento
+**Qué prueba:** Cálculo general cuando ningún tablón sufre.  
+**Resultado esperado:** Un entero válido.
+
+### 3. costoRiegoFinca – mezcla de sufrimiento
+**Qué prueba:** Costo total mezclando casos con sufrimiento y sin sufrimiento.  
+**Resultado esperado:** Un entero válido.
+
+### 4. costoRiegoFinca – caso general
+**Qué prueba:** Funcionamiento general con varios tablones.  
+**Resultado esperado:** Un entero válido.
+
+### 5. costoRiegoFinca – permutación invertida
+**Qué prueba:** La función soporta órdenes completamente invertidos.  
+**Resultado esperado:** Costo ≥ 0.
+
+---
+
+## Casos de Prueba – `costoMovilidad`
+
+### 6. costoMovilidad – finca de 1 tablón
+**Qué prueba:** Sin movimiento entre tablones.  
+**Resultado esperado:** `0`.
+
+### 7. costoMovilidad – dos tablones distancia básica
+**Qué prueba:** Suma simple de la distancia entre dos posiciones.  
+**Resultado esperado:** `4`.
+
+### 8. costoMovilidad – tres tablones con matriz simple
+**Qué prueba:** Suma de distancias siguiendo el orden dado.  
+**Resultado esperado:** Un entero válido.
+
+### 9. costoMovilidad – distancias variables
+**Qué prueba:** Funcionamiento con matriz más compleja.  
+**Resultado esperado:** Un entero válido.
+
+### 10. costoMovilidad – caso general
+**Qué prueba:** Movilidad con cinco tablones y distancias variadas.  
+**Resultado esperado:** Un entero válido.
+#  RiegoIntegración
+
+Este archivo describe brevemente cada caso de prueba relacionado con la integración entre los módulos de riego secuencial y paralelo.
+
+---
+
+## 1. Programación óptima en finca vacía
+**Objetivo:** Verificar que ambos métodos (secuencial y paralelo) producen la misma solución cuando no hay tablones.  
+**Resultado esperado:** Ambas funciones devuelven la misma programación (vector vacío).
+
+---
+
+## 2. Programación óptima con un solo tablón
+**Objetivo:** Confirmar que, para una finca de un solo tablón, ambos algoritmos generan el mismo orden.  
+**Resultado esperado:** `ProgramacionRiegoOptimo` y `ProgramacionRiegoOptimoPar` devuelven exactamente el mismo vector de tamaño 1.
+
+---
+
+## 3. Comparación determinística con n = 4
+**Objetivo:** Validar que para una finca pequeña generada de manera determinística, ambos métodos entregan el mismo resultado.  
+**Resultado esperado:** Los dos resultados son idénticos.
+
+---
+
+## 4. Pruebas aleatorias reproducibles
+**Objetivo:** Probar múltiples combinaciones de finca y matriz de distancia usando generadores determinísticos.  
+**Resultado esperado:** Todos los valores del vector resultante son `true`, indicando que ambos métodos coinciden en cada intento.
+
+---
+
+## 5. Comparación general para varios tamaños
+**Objetivo:** Verificar que la igualdad entre las soluciones secuenciales y paralelas se mantiene para diversos tamaños de finca (de 2 a 6).  
+**Resultado esperado:** Para cada valor de n, ambos algoritmos generan la misma programación.
+
+---
+— TestRiegoParalelo
+
+## 1. costoRiegoFincaPar — caso simple
+Prueba que el costo paralelo coincide con el secuencial para una finca pequeña.
+Resultado esperado: ambos valores deben ser iguales.
+
+## 2. costoMovilidadPar — coincide con versión secuencial
+Verifica que el cálculo de movilidad paralelo produce exactamente el mismo resultado que el secuencial.
+Resultado esperado: igualdad de valores.
+
+## 3. generarProgramacionesRiegoPar — mismas permutaciones (n=3)
+Confirma que la versión paralela genera las mismas permutaciones que la versión secuencial.
+Resultado esperado: ambos conjuntos de permutaciones son idénticos.
+
+## 4. ProgramacionRiegoOptimoPar — mismo costo óptimo que secuencial
+Comprueba que el algoritmo paralelo encuentra el mismo costo mínimo total que el algoritmo secuencial.
+Resultado esperado: los costos deben coincidir.
+
+## 5. Casos borde — finca vacía y un tablón
+### Finca vacía:
+Ambas versiones deben retornar programación vacía y costo cero.
+
+### Finca de un tablón:
+Debe coincidir la única programación posible y el costo resultante.
+# TestRiegoPermutaciones
+
+## 1. generarProgramacionesRiego — finca vacía
+Verifica que una finca sin tablones produce una única programación vacía.  
+Resultado esperado: Vector(Vector()).
+
+## 2. generarProgramacionesRiego — un tablón
+Comprueba que solo existe una permutación posible cuando hay un único tablón.  
+Resultado esperado: Vector(Vector(0)).
+
+## 3. generarProgramacionesRiego — dos tablones
+Confirma que las dos permutaciones posibles se generan correctamente.  
+Resultado esperado: Set(Vector(0,1), Vector(1,0)).
+
+## 4. generarProgramacionesRiego — tres tablones (tamaño correcto)
+Valida que se generan exactamente 6 permutaciones (3!).  
+Resultado esperado: longitud = 6.
+
+## 5. generarProgramacionesRiego — todas son permutaciones válidas
+Comprueba que todas las permutaciones contienen los IDs correctos sin repetición.  
+Resultado esperado: cada permutación ordenada debe ser Vector(0,1,2).
+
+---
+
+## 6. ProgramacionRiegoOptimo — finca vacía
+Debe retornar programación vacía y costo 0.  
+Resultado esperado: (Vector(), 0).
+
+## 7. ProgramacionRiegoOptimo — un tablón
+Con una sola opción, el costo debe coincidir y la permutación ser Vector(0).  
+Resultado esperado: programación válida y costo entero.
+
+## 8. ProgramacionRiegoOptimo — 3 tablones, matriz simple
+Valida que la programación encontrada es una permutación correcta y su costo coincide con el cálculo manual.  
+Resultado esperado: costoOpt coincide con el recalculado.
+
+## 9. ProgramacionRiegoOptimo — caso determinístico pequeño
+Compara el costo de las dos permutaciones posibles y verifica que el algoritmo elige la mejor.  
+Resultado esperado: programación óptima y costo mínimo correcto.
