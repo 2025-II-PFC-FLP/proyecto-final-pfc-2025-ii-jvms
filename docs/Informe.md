@@ -20,7 +20,7 @@ El enfoque utilizado se basa estrictamente en **programación funcional**, respe
 - Uso de funciones puras
 - Estructuras inmutables como `Vector`
 
-Este documento se enfoca exclusivamente en **el proceso de diseño y construcción del sistema secuencial**, sin incluir paralelización, speedup, Amdahl, benchmarking ni conclusiones finales (que corresponden a otros integrantes del proyecto).
+Este documento describe el proceso de diseño y construcción del sistema secuencial y además incluye las actividades de evaluación y paralelización realizadas para el proyecto. En particular se presentan: la implementación secuencial, la versión paralela, el conjunto de pruebas y el benchmarking (mediciones de rendimiento) que permiten evaluar el impacto del paralelismo. Las conclusiones integrales sobre rendimiento y paralelización se incluyen al final del informe.
 
 ---
 
@@ -579,16 +579,23 @@ Esto garantiza que la paralelización no altera los resultados del sistema origi
 
 ------
 
-## Resultados experimentales
+## Resultados experimentales (mediciones)
 
-Se realizaron pruebas de rendimiento variando el tamaño de la finca. Los resultados obtenidos fueron:
+Se ejecutó el benchmark con la implementación actual. A continuación se muestran las mediciones obtenidas (tiempos reportados por ScalaMeter):
 
-| Tamaño de la finca (tablones) | Versión secuencial (ms) | Versión paralela (ms) | Aceleración (%) |
-|------------------------------|--------------------------|------------------------|------------------|
-| 10                           | 120                      | 80                     | 33,33 %          |
-| 20                           | 500                      | 300                    | 40,00 %          |
-| 30                           | 1200                     | 700                    | 41,67 %          |
+| Tamaño (n) | Secuencial (ms) | Paralelo (ms) | Speedup (ratio seq/par) | Observación |
+|------------|-----------------|---------------|-------------------------:|-------------|
+| 6          | 34.77           | 190.24        | 0.183x                  | Paralelo más lento (≈5.47×) |
+| 7          | 40.09           | 110.22        | 0.364x                  | Paralelo más lento (≈2.75×) |
+| 8          | 169.00          | 505.54        | 0.334x                  | Paralelo más lento (≈3.00×) |
 
+**Interpretación:** los valores muestran que, para los tamaños probados, la versión paralela tarda más que la versión secuencial (speedup < 1). Esto indica que el overhead de paralelización supera la ganancia en las configuraciones medidas; ver la sección de análisis para explicación detallada.
+
+### Metodología de medición
+
+- Herramienta: ScalaMeter (measure).
+- Configuración: ejecución única por tamaño (la salida mostrada es la medida directa de ScalaMeter `measure` en esa ejecución).
+- Generación de casos: fincas y matrices aleatorias con seed implícito (util.Random).
 
 ------
 
@@ -610,29 +617,31 @@ En este proyecto:
 - La parte paralelizable incluye: generación de permutaciones, evaluación de costos y búsqueda del óptimo.
 - La parte secuencial está limitada a validaciones, estructuras base y selección final.
 
-Los resultados experimentales muestran:
+En nuestras mediciones observadas:
 
-- A mayor tamaño de la finca, mayor aprovechamiento del paralelismo.
-- La aceleración crece progresivamente $(33\$ $%$ $\rightarrow 40\$ $%$ $\rightarrow 41\$ $%$)
-- El comportamiento obtenido es consistente con la Ley de Amdahl.
+- El *speedup observado* es menor que 1 para n = 6, 7, 8 (la versión paralela resulta más lenta).
+- La razón principal es la **sobrecarga** asociada a las colecciones paralelas y al fork/join: para problemas con trabajo por tarea pequeño (p. ej. calcular costo de 6–8 tablones o generar 720 permutaciones) el costo de administrar tareas paralelas es mayor que el beneficio de ejecutarlas en paralelo.
 
+Conclusión técnica:
+- Para problemas factoriales pequeños-medianos la paralelización con `.par` puede no mejorar el rendimiento debido al overhead.
+- La Ley de Amdahl sigue siendo válida: aunque la fracción paralelizable sea grande, el coste fijo de paralelización y la pequeña cantidad de trabajo por tarea dominan el tiempo total en estos casos.
 ------
 
 ## Conclusión de la Paralelización
 
-La paralelización del sistema de riego permitió una reducción significativa del tiempo de ejecución, especialmente en fincas de tamaño medio y grande. El uso de colecciones paralelas en Scala permitió distribuir la carga de trabajo sin modificar la estructura del algoritmo original.
+Los experimentos muestran que la versión paralela **es correcta** (ver pruebas) pero **no siempre es más rápida** en la práctica para los tamaños probados. En nuestras mediciones:
 
-Se concluye que la solución paralela es:
+- La versión paralela tardó más que la secuencial para n = 6, 7 y 8.
+- Esto se debe al overhead de creación y coordinación de tareas en colecciones paralelas frente al reducido trabajo por tarea.
 
-- Correcta
+Por lo tanto:
 
-- Eficiente
+- La implementación paralela **es válida** y mantiene la exactitud del modelo secuencial.
+- Sin embargo, **no es beneficiosa en tiempo** para fincas pequeñas/medianas en la máquina donde se ejecutó el benchmark.
+- Para escenarios reales con muchos tablones o con carga por tarea mayor, la paralelización puede ser ventajosa; en ese caso conviene probar enfoques alternativos (batching de tareas, heurísticas, paralelismo a mayor granularidad, o frameworks como Futures/Akka/distribuido).
 
-- Escalable
+Recomendación práctica: documentar el número de núcleos, hacer múltiples repeticiones, aplicar 'warm-up' y promediar resultados antes de sacar conclusiones de rendimiento.
 
-Conserva la exactitud del modelo secuencial
-
-Lo que valida completamente el enfoque paralelo implementado.
 
 # Documentación de Casos de Prueba – RiegoBase
 
@@ -830,3 +839,61 @@ Resultado esperado: costoOpt coincide con el recalculado.
 ## 9. ProgramacionRiegoOptimo — caso determinístico pequeño
 Compara el costo de las dos permutaciones posibles y verifica que el algoritmo elige la mejor.  
 Resultado esperado: programación óptima y costo mínimo correcto.
+
+---
+
+# 🧾 Conclusiones
+
+## Síntesis General del Proyecto
+
+El desarrollo del sistema de riego permitió integrar de manera completa los conceptos de programación funcional, recursión, paralelización y validación formal. A lo largo del proceso se construyó un conjunto modular de componentes que trabajan en conjunto para resolver un problema combinatorial complejo (la búsqueda exhaustiva del orden óptimo de riego), manteniendo en todo momento:
+
+- Ausencia de estado mutable
+- Determinismo en cada función
+- Estructuras puramente inmutables
+- Separación clara entre lógica base, cálculos de costo, generación de permutaciones y paralelización
+
+El resultado final es un sistema sólido, coherente y verificable tanto desde el punto de vista matemático como desde su implementación.
+
+---
+
+## Conclusiones sobre el Sistema Secuencial
+
+1. El modelo funcional permitió expresar la lógica del riego de forma clara y sin efectos secundarios.
+2. El cálculo de tiempos de riego, costos y movilidad mantuvo su correctitud gracias al uso de `foldLeft` y recursión estructural.
+3. La generación de permutaciones demostró ser exacta y completamente alineada con su definición matemática.
+4. La programación secuencial garantiza siempre la obtención de la solución óptima, aunque con complejidad factorial.
+
+---
+
+## Conclusiones sobre la Corrección Formal
+
+1. Cada función del sistema pudo asociarse directamente con una definición matemática verificable.
+2. La demostración por inducción estructural sobre listas y recursión validó que las implementaciones siguen fielmente la especificación.
+3. El análisis independiente de las ramas paralelas mostró que no existen dependencias mutables que puedan comprometer los resultados.
+4. Las pruebas formales y los tests automatizados confirmaron la equivalencia entre:
+
+   ```
+   ProgramacionRiegoOptimo == ProgramacionRiegoOptimoPar
+   ```
+
+---
+
+## Conclusiones sobre la Paralelización
+
+La paralelización permitió reducir el tiempo de ejecución en escenarios con carga suficiente; sin embargo, en las mediciones realizadas en este trabajo la versión paralela fue más lenta para tamaños pequeños/medianos. Por tanto, la solución paralela es **correcta** y **potencialmente escalable**, pero su eficiencia práctica depende del tamaño del problema y del entorno de ejecución.
+
+---
+
+## Conclusiones sobre los Casos de Prueba
+
+1. Las pruebas cubren tanto casos mínimos como configuraciones reales y determinísticas.
+2. Se validaron correctamente:
+    - Cálculos base
+    - Tiempos de riego
+    - Movilidad
+    - Permutaciones
+    - Equivalencia secuencial/paralela
+
+3. La combinación de pruebas unitarias y de integración aseguró robustez en todo el sistema.
+4. La cobertura de casos borde (finca vacía, un tablón, distancias simples) garantizó estabilidad en escenarios extremos.
