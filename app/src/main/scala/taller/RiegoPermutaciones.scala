@@ -34,29 +34,32 @@ object RiegoPermutaciones {
 
   // Dada la finca y la matriz de distancias devuelve (programación óptima, costo)
   def ProgramacionRiegoOptimo(f: Finca, d: Distancia): (ProgRiego, Int) = {
-    // Caso vacio
-    if (f.isEmpty) return (Vector.empty[Int], 0)
 
-    // generamos programaciones (recursivas)
-    val programaciones = generarProgramacionesRiego(f)
+    if (f.isEmpty)
+      (Vector.empty[Int], 0)
+    else {
+      // generamos programaciones (recursivas)
+      val programaciones = generarProgramacionesRiego(f)
 
-    // instancia para usar los métodos de costos ya implementados
-    val rc = new RiegoCostos()
+      // instancia para usar los métodos de costos ya implementados
+      val rc = new RiegoCostos()
 
-    // recorrer todas las programaciones y elegir la de menor costo total
-    // (costo riego finca + costo movilidad)
-    val (mejorProg, mejorCosto) = programaciones.foldLeft((Vector.empty[Int], Int.MaxValue)) {
-      case ((bestProg, bestCost), prog) =>
-        val cr = rc.costoRiegoFinca(f, prog)
-        val cm = rc.costoMovilidad(f, prog, d)
-        val total = cr + cm
-        if (total < bestCost) (prog, total) else (bestProg, bestCost)
+
+      // recorrer todas las programaciones y elegir la de menor costo total
+      // (costo riego finca + costo movilidad)
+      val (mejorProg, mejorCosto) = programaciones.foldLeft((Vector.empty[Int], Int.MaxValue)) {
+        case ((bestProg, bestCost), prog) =>
+          val cr = rc.costoRiegoFinca(f, prog)
+          val cm = rc.costoMovilidad(f, prog, d)
+          val total = cr + cm
+          if (total < bestCost) (prog, total) else (bestProg, bestCost)
+      }
+
+      // si mejorCosto quedó Int.MaxValue (no debería si f != empty) devolvemos (vacio,0)
+      if (mejorCosto == Int.MaxValue) (Vector.empty[Int], 0)
+      else (mejorProg, mejorCosto)
+
     }
 
-    // si mejorCosto quedó Int.MaxValue (no debería si f != empty) devolvemos (vacio,0)
-    if (mejorCosto == Int.MaxValue) (Vector.empty[Int], 0)
-    else (mejorProg, mejorCosto)
-
   }
-
 }
