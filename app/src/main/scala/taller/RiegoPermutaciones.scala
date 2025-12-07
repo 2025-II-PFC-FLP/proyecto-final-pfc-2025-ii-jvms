@@ -45,20 +45,21 @@ object RiegoPermutaciones {
       val rc = new RiegoCostos()
 
 
-    // recorrer todas las programaciones y elegir la de menor costo total
-    // (costo riego finca + costo movilidad)
-    val (mejorProg, mejorCosto) = programaciones.foldLeft((Vector.empty[Int], Int.MaxValue)) {
-      case ((bestProg, bestCost), prog) =>
-        val cr = rc.costoRiegoFinca(f, prog)
-        val cm = rc.costoMovilidad(f, prog, d)
-        val total = cr + cm
-        if (total < bestCost) (prog, total) else (bestProg, bestCost)
+      // recorrer todas las programaciones y elegir la de menor costo total
+      // (costo riego finca + costo movilidad)
+      val (mejorProg, mejorCosto) = programaciones.foldLeft((Vector.empty[Int], Int.MaxValue)) {
+        case ((bestProg, bestCost), prog) =>
+          val cr = rc.costoRiegoFinca(f, prog)
+          val cm = rc.costoMovilidad(f, prog, d)
+          val total = cr + cm
+          if (total < bestCost) (prog, total) else (bestProg, bestCost)
+      }
+
+      // si mejorCosto quedó Int.MaxValue (no debería si f != empty) devolvemos (vacio,0)
+      if (mejorCosto == Int.MaxValue) (Vector.empty[Int], 0)
+      else (mejorProg, mejorCosto)
+
     }
 
-    // si mejorCosto quedó Int.MaxValue (no debería si f != empty) devolvemos (vacio,0)
-    if (mejorCosto == Int.MaxValue) (Vector.empty[Int], 0)
-    else (mejorProg, mejorCosto)
-
   }
-
 }
